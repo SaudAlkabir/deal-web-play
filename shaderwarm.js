@@ -25,6 +25,35 @@
  * If anything is unsupported or fails, it simply stops: the game works the
  * same, only without the head start.
  */
+
+/*
+ * Area-light code removal (Godot 4.7.2 Compatibility renderer, web only).
+ *
+ * The engine leaves out area-light code only together with spot-light code,
+ * so every lit shader reached by the table's spot light also carries the
+ * area-light code: ~84% of its compile time on Windows / Direct3D. This game
+ * has no area lights (no AreaLight3D anywhere), so that code never runs:
+ * defining DISABLE_LIGHT_AREA (the engine's own switch, which it already sets
+ * for other shader variants) removes dead code and changes nothing on screen.
+ * Applies to the engine's and the warmer's contexts alike, so cache keys match.
+ */
+(function () {
+  "use strict";
+  var patch = (window.__dealShaderPatch = { area: 0 });
+  if (!window.WebGL2RenderingContext) return;
+  var P = WebGL2RenderingContext.prototype;
+  var original = P.shaderSource;
+  P.shaderSource = function (shader, src) {
+    if (typeof src === "string" && src.indexOf("!defined(DISABLE_LIGHT_AREA)") >= 0 &&
+        !/^#define DISABLE_LIGHT_AREA\b/m.test(src) && src.lastIndexOf("#version", 0) === 0) {
+      var eol = src.indexOf("\n");
+      src = src.slice(0, eol + 1) + "#define DISABLE_LIGHT_AREA\n" + src.slice(eol + 1);
+      patch.area++;
+    }
+    return original.call(this, shader, src);
+  };
+})();
+
 (function () {
   "use strict";
   var state = (window.__dealWarm = { total: 0, done: 0, failed: 0, ms: 0, ready: false, skipped: "" });
@@ -44,7 +73,9 @@
 
   fetch("shaderpack.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (pack) {
     if (!pack || pack.v !== 1) { giveUp("no pack"); return; }
-    var KEY = "deal.shaderwarm";
+    // The key also names the source patch above: a cache warmed without it
+    // does not hold the patched programs.
+    var KEY = "deal.shaderwarm.area1";
     try { if (pack.id && localStorage.getItem(KEY) === pack.id) { giveUp("already warm"); return; } } catch (e) {}
     var canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
