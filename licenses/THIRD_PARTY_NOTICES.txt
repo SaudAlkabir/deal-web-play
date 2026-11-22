@@ -1,0 +1,8 @@
+﻿Bluff & Deal (Deal Web) bundles these third-party components:
+
+- Godot Engine (MIT): https://godotengine.org/license
+- Tajawal font, SIL Open Font License 1.1: Tajawal-OFL.txt
+- Noto Sans Symbols 2 font, SIL Open Font License 1.1: NotoSansSymbols2-OFL.txt
+- Poing Studios Godot AdMob plugin scripts (MIT, inactive in the browser build): godot-admob-MIT.txt
+
+All game audio is original procedural audio made for this project.
